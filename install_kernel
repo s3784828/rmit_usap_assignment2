@@ -1,0 +1,47 @@
+#!/bin/bash
+
+git_hub_user="s3784828"
+config_directory="rmit_usap_assignment2"
+
+# Install binaries - neccessary for kernal install
+sudo apt install raspberrypi-kernel-headers build-essential bc git wget bison flex libssl-dev make
+
+# Clone repository containing linux kernel for rasberry pi
+git clone --depth=1 https://github.com/raspberrypi/linux
+
+# Clone repository that contains config file
+git clone --depth=1 https://github.com/$git_hub_user/$config_directory.git
+
+# Check if the cloned repository exists
+if [[ -d $config_directory ]] 
+then
+	# Move to the config directory or exit if fails 
+	cd $config_directory || exit
+else
+	echo "Error: failed to locate $config_directory"
+	exit
+fi
+
+# Copy the config file into the downloaded linux repository
+echo "Copying config file"
+cp .config ../linux
+
+# Move back to the raspberry pi linux directory
+cd ../linux || exit
+
+# Make the kernal
+echo "Beggining make proccess"
+make -j4 zImage modules dtbs
+
+# Install the final modules
+echo "Installing modules"
+sudo make modules_install
+
+# Copy the required files to the final destination
+echo "Copying required files to the final destination"
+sudo cp arch/arm/boot/dts/*.dtb /boot/
+sudo cp arch/arm/boot/dts/overlays/*.dtb* /boot/overlays/
+sudo cp arch/arm/boot/dts/overlays/README /boot/overlays/
+sudo cp arch/arm/boot/zImage /boot/$KERNEL.img
+
+
